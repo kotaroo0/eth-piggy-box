@@ -7,8 +7,8 @@ contract PiggyBank is Ownable {
 
     uint256 public goalAmount; // 貯金目標額(wei)
 
-    event Deposit(address addr, uint amount);
-    event Destroy(address addr, uint amount);
+    event Deposit(address userAddress, address contractAddress, uint amount);
+    event Destroy(address userAddress, address contractAddress, uint amount);
     // event Withdraw(address addr, uint amount, bool done);
 
     // コントラクトの初期化
@@ -18,14 +18,15 @@ contract PiggyBank is Ownable {
 
     // ETHを貯金する
     function deposit() onlyOwner payable {
-        emit Deposit(msg.sender, msg.value);
+        emit Deposit(msg.sender, address(this), msg.value);
     }
 
     // 貯金箱を壊してお金を取り出す
     function destroy() onlyOwner {
-        uint amount = address(this).balance;
+        address contractAddress = address(this);
+        uint amount = contractAddress.balance;
         require(amount >= goalAmount, "Insufficient Savings");
-        emit Destroy(msg.sender, amount);
+        // emit Destroy(msg.sender, contractAddress, amount);
         selfdestruct(owner());
     }
 

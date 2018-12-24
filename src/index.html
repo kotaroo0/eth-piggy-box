@@ -3,7 +3,6 @@
   <head>
     <title>PiggyBank</title>
     <link href="css/bootstrap.min.css" rel="stylesheet">
-    <script type="text/javascript" src="js/index.js"></script>
     <script type="text/javascript" src="js/piggy_bank_abi.js"></script>
     <script type="text/javascript" src="js/piggy_bank_bytecode.js"></script>
     <script type="text/javascript" src="js/web3.min.js"></script>
@@ -11,32 +10,16 @@
   </head>
   <body>
     <div class="container">
-      <div class="row justify-content-center mt-5">
-        <div class="col-8">
-          <span>Goal Amount(eth):</span>
-          <input type="number" id="goal-amount" name="example" value="1">
-          <button id="create" type="button" class="btn btn-primary rounded-0">Create Piggy Bank</button>
-        </div>
+
+      <div class="m-5">
+          <h5>Input Goal Amount And Create Piggy Bank!</h5>
+          <h6>
+            Goal Amount(eth):
+            <input type="number" id="goal-amount" name="example" value="1">
+            <button id="create" type="button" class="btn btn-primary btn-sm">Create</button>
+          </h6>
       </div>
-      <div class="row justify-content-center mt-5">
-        <div class="col-2">
-          <button type="button" class="contract-address btn btn-primary rounded-0" >Contract Address</button>
-        </div>
-        <div class="col-2">
-          <button type="button" class="contract-address btn btn-primary rounded-0" >Owner</button>
-        </div>
-        <div class="col-4">
-          <span>Amount(eth):</span>
-          <input type="number" class="amount" name="example" value="1">
-          <button type="button" class="deposit btn btn-primary rounded-0" data-contract-address="0xB33Dfd56E971053ae82Cf02952CA00A2bC833374">Deposit</button>
-        </div>
-        <div class="col-2">
-          <button type="button" class="destroy btn btn-primary rounded-0" data-contract-address="0xB33Dfd56E971053ae82Cf02952CA00A2bC833374">Destroy</button>
-        </div>
-        <div class="col-2">
-          <button type="button" class="balance btn btn-primary rounded-0">Balance</button>
-        </div>
-      </div>
+
     </div>
     <script type="text/javascript" src="js/index.js"></script>
   </body>
