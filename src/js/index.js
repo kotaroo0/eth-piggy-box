@@ -17,6 +17,10 @@ window.addEventListener("load", function() {
 $("#create").click(function() {
   var goalAmount = $("#goal-amount").val();
   web3js.eth.getAccounts(function(err, accounts) {
+    if (err) {
+      alert(err);
+      return;
+    }
     userAccount = accounts[0];
     createPiggyBank(userAccount, goalAmount);
   });
@@ -193,9 +197,13 @@ function createPiggyBank(msgSender, goalEthAmount) {
         alert(err);
         return;
       }
+      if (!piggyBankInstance.address) {
+        console.log(piggyBankInstance.transactionHash);
+        return;
+      }
       piggyBankInstanceAddress = piggyBankInstance.address;
-      $(".container").append(
-        `<div class=\"piggy-bank ${piggyBankInstanceAddress} d-inline-block m-2\">\
+      $(".container")
+        .append(`<div class=\"piggy-bank ${piggyBankInstanceAddress} d-inline-block m-2\">\
             <div class=\"card\" style=\"width: 20rem;\">\
               <img class=\"card-img-top\" src=\"img/piggy_bank.png\">\
               <div class=\"card-body\">\
@@ -213,8 +221,7 @@ function createPiggyBank(msgSender, goalEthAmount) {
                 </p>\
             </div>\
           </div>\
-        </div>`
-      );
+        </div>`);
       watchDepositEvent(piggyBankInstanceAddress);
       watchDestroyEvent(piggyBankInstanceAddress);
       localStorage.setItem(piggyBankInstanceAddress, msgSender);
