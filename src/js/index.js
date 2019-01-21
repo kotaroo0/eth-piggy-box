@@ -1,13 +1,16 @@
-var PiggyBankContract;
+var PiggyBankInstance;
 var web3js;
 
 // --- イベントリスナー(DOM) ---
 window.addEventListener("load", function() {
   if (typeof web3 !== "undefined") {
     web3js = new Web3(web3.currentProvider);
-    PiggyBankContract = web3js.eth.contract(PiggyBankABI);
+    PiggyBankInstance = web3js.eth.contract(PiggyBankABI).at(PiggyBankAddress);
     console.log("Launched!");
     startApp(); // DOMの初期化
+    watchCreateEvent();
+    watchDepositEvent();
+    watchDestroyEvent();
   } else {
     // Metamask等がない場合
     alert("No provider detected.");
@@ -22,7 +25,7 @@ $("#create").click(function() {
       return;
     }
     userAccount = accounts[0];
-    createPiggyBank(userAccount, goalAmount);
+    create(userAccount, goalAmount);
   });
 });
 
@@ -40,9 +43,9 @@ $(".container").on("click", ".deposit", function(event) {
       alert("This is Piggy Bank of Others!");
       return;
     }
-    var toAddress = targetPiggyBank.find(".contract-address").text(); // 貯金先のアドレス
+    var id = targetPiggyBank.find(".id").text(); // 貯金先のアドレス
     var ethAmount = targetPiggyBank.find(".amount").val(); // Etherの送付量
-    deposit(ownerAddress, toAddress, ethAmount);
+    deposit(ownerAddress, id, ethAmount);
   });
 });
 
@@ -60,41 +63,92 @@ $(".container").on("click", ".destroy", function(event) {
       alert("This is Piggy Bank of Others!");
       return;
     }
-    var contractAddress = targetPiggyBank.find(".contract-address").text(); // 破壊する貯金箱のアドレス
-    let savingAmount = $(`.${contractAddress} .saving-amount`).text();
-    let goalAmount = $(`.${contractAddress} .goal-amount`).text();
+    var id = targetPiggyBank.find(".id").text(); // 破壊する貯金箱のid
+    let savingAmount = $(`.${id} .saving-amount`).text();
+    let goalAmount = $(`.${id} .goal-amount`).text();
     if (savingAmount < goalAmount) {
       alert("Insufficient Amount!");
       return;
     }
-    destroy(ownerAddress, contractAddress);
+    destroy(ownerAddress, id);
   });
 });
 // END --- イベントリスナー(DOM) ---
 
 // --- イベントリスナー(コントラクト) ---
-function watchDepositEvent(contractAddress) {
-  var depositEvent = PiggyBankContract.at(contractAddress).Deposit();
+function watchCreateEvent() {
+  var createEvent = PiggyBankInstance.Create();
+  createEvent.watch(function(err, result) {
+    if (err) {
+      alert(err);
+      return;
+    }
+    let id = result.args["id"].c[0];
+    let owner = result.args["userAddress"];
+    let goalAmount = result.args["goalAmount"].c[0] / 10000;
+    $(".container").append(
+      `<div class=\"piggy-bank ${id} d-inline-block m-2\">\
+          <div class=\"card\" style=\"width: 20rem;\">\
+            <img class=\"card-img-top\" src=\"img/piggy_bank.png\">\
+            <div class=\"card-body\">\
+              <p class=\"card-text\">PiggyBankId: <span class=\"id\">${id}</span></p>\
+              <p class=\"card-text\">Owner Address: <span class=\"owner-address\">${owner}</span></p>\
+              <p class=\"card-text\">Saving Amount: <span class=\"saving-amount\">0</span></p>\
+              <p class=\"card-text\">Goal Amount: <span class=\"goal-amount\">${goalAmount}</span></p>\
+              <p class=\"card-text\">\
+                <div>Amount(eth):</div>\
+                <input type=\"number\" class=\"amount\" name=\"example\" value=\"1\">\
+                <button type=\"button\" class=\"deposit btn btn-primary btn-sm\">Deposit</button>\
+              </p>\
+              <p class=\"card-text text-right\">\
+                <button type=\"button\" class=\"destroy btn btn-danger btn-sm w-100\">Destroy</button>\
+              </p>\
+            </div>\
+          </div>\
+        </div>`
+    );
+    localStorage.setItem(
+      id,
+      JSON.stringify({ owner: owner, savingAmount: 0, goalAmount: goalAmount })
+    );
+  });
+}
+
+function watchDepositEvent() {
+  var depositEvent = PiggyBankInstance.Deposit();
   depositEvent.watch(function(err, result) {
     if (err) {
       alert(err);
       return;
     }
     console.log(result);
-    updateBalance(contractAddress);
+    let id = result.args["id"].c[0];
+    let owner = result.args["userAddress"];
+    let savingAmount = result.args["savingAmount"].c[0] / 10000;
+    let goalAmount = result.args["goalAmount"].c[0] / 10000;
+    $(`.${id} .saving-amount`).text(savingAmount); // よくわからん単位で返ってくる
+    localStorage.setItem(
+      id,
+      JSON.stringify({
+        owner: owner,
+        savingAmount: savingAmount,
+        goalAmount: goalAmount
+      })
+    );
   });
 }
 
-function watchDestroyEvent(contractAddress) {
-  var destroyEvent = PiggyBankContract.at(contractAddress).Destroy();
+function watchDestroyEvent() {
+  var destroyEvent = PiggyBankInstance.Destroy();
   destroyEvent.watch(function(err, result) {
     if (err) {
       alert(err);
       return;
     }
     console.log(result);
-    localStorage.removeItem(contractAddress);
-    $(`.${contractAddress}`).remove();
+    let id = result.args["id"].c[0];
+    $(`.${id}`).remove();
+    localStorage.removeItem(id);
   });
 }
 // END --- イベントリスナー(コントラクト) ---
@@ -110,23 +164,27 @@ function weiToEther(weiAmount) {
 // END --- 単位の変換に用いる関数 ---
 
 // 画面を開いた時に呼ばれ、ローカルストレージから存在する貯金箱を読み込み表示
-async function startApp() {
-  for (piggyBankInstanceAddress in localStorage) {
-    if (piggyBankInstanceAddress.length < 40) {
+function startApp() {
+  for (id in localStorage) {
+    if (isNaN(id) || id.length > 10) {
       // ローカルストレージの他のいろいろも取ってきてしまうためフィルタリング
       continue;
     }
-    $(".container").append(
-      `<div class=\"piggy-bank ${piggyBankInstanceAddress} d-inline-block m-2\">\
+    let data = JSON.parse(localStorage.getItem(id));
+    $(".container").append(`<div class=\"piggy-bank ${id} d-inline-block m-2\">\
         <div class=\"card\" style=\"width: 20rem;\">\
           <img class=\"card-img-top\" src=\"img/piggy_bank.png\">\
           <div class=\"card-body\">\
-            <p class=\"card-text\">Contract Address: <span class=\"contract-address\">${piggyBankInstanceAddress}</span></p>\
+            <p class=\"card-text\">PiggyBankId:  <span class=\"id\">${id}</span></p>\
             <p class=\"card-text\">Owner Address: <span class=\"owner-address\">${
-              localStorage[piggyBankInstanceAddress]
+              data["owner"]
             }</span></p>\
-            <p class=\"card-text\">Saving Amount: <span class=\"saving-amount\">0</span></p>\
-            <p class=\"card-text\">Goal Amount: <span class=\"goal-amount\">loading...</span></p>\
+            <p class=\"card-text\">Saving Amount: <span class=\"saving-amount\">${
+              data["savingAmount"]
+            }</span></p>\
+            <p class=\"card-text\">Goal Amount: <span class=\"goal-amount\">${
+              data["goalAmount"]
+            }</span></p>\
             <p class=\"card-text\">\
               <div>Amount(eth):</div>\
               <input type=\"number\" class=\"amount\" name=\"example\" value=\"1\">\
@@ -137,27 +195,37 @@ async function startApp() {
             </p>\
           </div>\
         </div>\
-      </div>`
-    );
-
-    // 残高、目標額を取得してDOMに埋め込む
-    updateBalance(piggyBankInstanceAddress);
-    updateGoalAmount(piggyBankInstanceAddress);
-
-    // それぞれのコントラクトに対してイベントリスナーを登録
-    watchDepositEvent(piggyBankInstanceAddress);
-    watchDestroyEvent(piggyBankInstanceAddress);
+      </div>`);
   }
 }
 // END --- 画面を開いた時に呼ばれ、ローカルストレージから存在する貯金箱を読み込み表示 ---
 
 // --- コントラクトに対して処理をする ---
-// 貯金する
-function deposit(fromAddress, toAddress, ethAmount) {
-  // トランザクションオブジェクトを作成
-  txObject = { from: fromAddress, to: toAddress, value: etherToWei(ethAmount) };
+// 新しい貯金箱を作成する
+function create(userAddress, goalAmount) {
+  PiggyBankInstance.create.sendTransaction(
+    etherToWei(goalAmount),
+    { from: userAddress },
+    function(err, result) {
+      if (err) {
+        alert(err);
+        return;
+      }
+      console.log(result);
+    }
+  );
+}
 
-  PiggyBankContract.at(toAddress).deposit.sendTransaction(txObject, function(
+// 貯金する
+function deposit(fromAddress, id, ethAmount) {
+  // トランザクションオブジェクトを作成
+  txObject = {
+    from: fromAddress,
+    to: PiggyBankAddress,
+    value: etherToWei(ethAmount)
+  };
+
+  PiggyBankInstance.deposit.sendTransaction(id, txObject, function(
     err,
     result
   ) {
@@ -170,8 +238,8 @@ function deposit(fromAddress, toAddress, ethAmount) {
 }
 
 // 貯金箱を破壊してお金を取り出す
-function destroy(userAddress, contractAddress) {
-  PiggyBankContract.at(contractAddress).destroy({ from: userAddress }, function(
+function destroy(userAddress, id) {
+  PiggyBankInstance.destroy.sendTransaction(id, { from: userAddress }, function(
     err,
     result
   ) {
@@ -182,74 +250,4 @@ function destroy(userAddress, contractAddress) {
     console.log(result);
   });
 }
-
-// 新しい貯金箱を作成する
-function createPiggyBank(msgSender, goalEthAmount) {
-  PiggyBankContract.new(
-    etherToWei(goalEthAmount),
-    {
-      data: PiggyBankBytecode,
-      from: msgSender,
-      gas: 3000000
-    },
-    function(err, piggyBankInstance) {
-      if (err) {
-        alert(err);
-        return;
-      }
-      if (!piggyBankInstance.address) {
-        console.log(piggyBankInstance.transactionHash);
-        return;
-      }
-      piggyBankInstanceAddress = piggyBankInstance.address;
-      $(".container")
-        .append(`<div class=\"piggy-bank ${piggyBankInstanceAddress} d-inline-block m-2\">\
-            <div class=\"card\" style=\"width: 20rem;\">\
-              <img class=\"card-img-top\" src=\"img/piggy_bank.png\">\
-              <div class=\"card-body\">\
-                <p class=\"card-text\">Contract Address: <span class=\"contract-address\">${piggyBankInstanceAddress}</span></p>\
-                <p class=\"card-text\">Owner Address: <span class=\"owner-address\">${msgSender}</span></p>\
-                <p class=\"card-text\">Saving Amount: <span class=\"saving-amount\">0</span></p>\
-                <p class=\"card-text\">Goal Amount: <span class=\"goal-amount\">${goalEthAmount}</span></p>\
-                <p class=\"card-text\">\
-                  <div>Amount(eth):</div>\
-                  <input type=\"number\" class=\"amount\" name=\"example\" value=\"1\">\
-                  <button type=\"button\" class=\"deposit btn btn-primary btn-sm\">Deposit</button>\
-                </p>\
-                <p class=\"card-text text-right\">\
-                  <button type=\"button\" class=\"destroy btn btn-danger btn-sm w-100\">Destroy</button>\
-                </p>\
-            </div>\
-          </div>\
-        </div>`);
-      watchDepositEvent(piggyBankInstanceAddress);
-      watchDestroyEvent(piggyBankInstanceAddress);
-      localStorage.setItem(piggyBankInstanceAddress, msgSender);
-    }
-  );
-}
 // END --- コントラクトに対して処理をする ---
-
-// --- コントラクトの情報を取得する ---
-// 貯金額の更新
-function updateBalance(contractAddress) {
-  web3js.eth.getBalance(contractAddress, function(err, balance) {
-    if (err) {
-      alert(err);
-      return;
-    }
-    $(`.${contractAddress} .saving-amount`).text(balance.c[0] / 10000); // よくわからん単位で返ってくる
-  });
-}
-
-// 目標額の読み込み
-function updateGoalAmount(contractAddress) {
-  PiggyBankContract.at(contractAddress).goalAmount(function(err, amount) {
-    if (err) {
-      alert(err);
-      return;
-    }
-    $(`.${contractAddress} .goal-amount`).text(amount.c[0] / 10000); // よくわからん単位で返ってくる
-  });
-}
-// END --- コントラクトの情報を取得する ---
