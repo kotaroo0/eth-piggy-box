@@ -1,5 +1,5 @@
 var PiggyBank = artifacts.require("./PiggyBank.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(PiggyBank, 10);
+  deployer.deploy(PiggyBank);
 };
