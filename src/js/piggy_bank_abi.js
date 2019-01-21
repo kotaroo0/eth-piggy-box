@@ -32,7 +32,8 @@ var PiggyBankABI = [
       ],
       "payable": false,
       "stateMutability": "view",
-      "type": "function"
+      "type": "function",
+      "signature": "0x3c6bb3f9"
     },
     {
       "anonymous": false,
@@ -54,7 +55,8 @@ var PiggyBankABI = [
         }
       ],
       "name": "Create",
-      "type": "event"
+      "type": "event",
+      "signature": "0x278b0fd0170e87df8d6e9c94b47d3ff7382de693c547e6089b53f9972c532389"
     },
     {
       "anonymous": false,
@@ -86,7 +88,8 @@ var PiggyBankABI = [
         }
       ],
       "name": "Deposit",
-      "type": "event"
+      "type": "event",
+      "signature": "0x7162984403f6c73c8639375d45a9187dfd04602231bd8e587c415718b5f7e5f9"
     },
     {
       "anonymous": false,
@@ -108,7 +111,8 @@ var PiggyBankABI = [
         }
       ],
       "name": "Destroy",
-      "type": "event"
+      "type": "event",
+      "signature": "0x16b35c733876ade87e5062332519f2666918ff4b5a284a7f4625c231cda6ff28"
     },
     {
       "constant": false,
@@ -122,7 +126,8 @@ var PiggyBankABI = [
       "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
-      "type": "function"
+      "type": "function",
+      "signature": "0x780900dc"
     },
     {
       "constant": false,
@@ -136,7 +141,8 @@ var PiggyBankABI = [
       "outputs": [],
       "payable": true,
       "stateMutability": "payable",
-      "type": "function"
+      "type": "function",
+      "signature": "0xb6b55f25"
     },
     {
       "constant": false,
@@ -150,6 +156,7 @@ var PiggyBankABI = [
       "outputs": [],
       "payable": false,
       "stateMutability": "nonpayable",
-      "type": "function"
+      "type": "function",
+      "signature": "0x9d118770"
     }
   ];

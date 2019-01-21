@@ -63,7 +63,7 @@ $(".container").on("click", ".destroy", function(event) {
       alert("This is Piggy Bank of Others!");
       return;
     }
-    var id = targetPiggyBank.find(".id").text(); // 破壊する貯金箱のアドレス
+    var id = targetPiggyBank.find(".id").text(); // 破壊する貯金箱のid
     let savingAmount = $(`.${id} .saving-amount`).text();
     let goalAmount = $(`.${id} .goal-amount`).text();
     if (savingAmount < goalAmount) {
@@ -171,12 +171,11 @@ function startApp() {
       continue;
     }
     let data = JSON.parse(localStorage.getItem(id));
-    $(".container").append(
-      `<div class=\"piggy-bank ${id} d-inline-block m-2\">\
+    $(".container").append(`<div class=\"piggy-bank ${id} d-inline-block m-2\">\
         <div class=\"card\" style=\"width: 20rem;\">\
           <img class=\"card-img-top\" src=\"img/piggy_bank.png\">\
           <div class=\"card-body\">\
-            <p class=\"card-text\">Contract Address: <span class=\"contract-address\">${id}</span></p>\
+            <p class=\"card-text\">PiggyBankId:  <span class=\"id\">${id}</span></p>\
             <p class=\"card-text\">Owner Address: <span class=\"owner-address\">${
               data["owner"]
             }</span></p>\
@@ -196,8 +195,7 @@ function startApp() {
             </p>\
           </div>\
         </div>\
-      </div>`
-    );
+      </div>`);
   }
 }
 // END --- 画面を開いた時に呼ばれ、ローカルストレージから存在する貯金箱を読み込み表示 ---
