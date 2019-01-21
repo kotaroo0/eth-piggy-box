@@ -61,8 +61,9 @@ contract PiggyBank {
         require(isExist, "Not Exist");
         require(piggyBanks[index].owner == msg.sender, "Incorrect User");
         require(piggyBanks[index].savingAmount >= piggyBanks[index].goalAmount, "Insufficient Saving Amount");
-        msg.sender.transfer(piggyBanks[index].savingAmount);
+        piggyBanks[index].savingAmount = 0;
         piggyBanks[index].isActive = false;
+        msg.sender.transfer(piggyBanks[index].savingAmount);
         emit Destroy(msg.sender, id, piggyBanks[index].savingAmount);
     }
 }
